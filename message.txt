@@ -1,0 +1,386 @@
+一、我最推薦你的延伸方向 ⭐
+方向 1：從「異常點」延伸到「異常事件／異常趨勢」
+
+這是我最推薦的。
+
+論文主要討論 point anomaly detection，也就是：
+
+哪一天的資料特別異常？
+
+你的題目可以進一步問：
+
+ETF 的異常是否會持續數天？不同 ETF 是否會同時出現異常？
+
+例如：
+
+日期       SPY    QQQ    XLF    XLK
+──────────────────────────────
+6/01       正常   正常   正常   正常
+6/02       異常   正常   異常   正常
+6/03       異常   異常   異常   異常
+6/04       異常   異常   異常   異常
+6/05       正常   異常   正常   異常
+
+不要只說：
+
+6/02 是 anomaly
+
+而是進一步分析：
+
+6/02–6/05 是一個 ETF 異常事件。
+
+你的架構就可以變成：
+
+TranAD
+   ↓
+Daily Anomaly Score
+   ↓
+Threshold
+   ↓
+Anomaly Days
+   ↓
+Consecutive / Persistent Anomaly
+   ↓
+Anomaly Event
+   ↓
+ETF Anomaly Trend
+
+這個方向跟你原本想做的「異常趨勢偵測」非常契合。
+
+而且論文本身也提到 point anomaly 中，連續異常日可能形成 sustained episodes，但它沒有把 ETF 的跨資產異常事件作為你的這種研究重點。
+
+二、方向 2：加入 GARCH，研究「波動異常」
+
+這是第二推薦。
+
+你現在：
+
+ETF Return
+     ↓
+TranAD
+     ↓
+Anomaly
+
+可以變成：
+
+ETF Return
+     ↓
+GARCH / EGARCH / GJR-GARCH / APARCH
+     ↓
+Volatility σ
+     ↓
+TranAD
+     ↓
+Anomaly
+
+甚至比較：
+
+Input	TranAD
+Return	TranAD
+Return + GARCH Volatility	TranAD
+Return + EGARCH Volatility	TranAD
+Return + GJR-GARCH Volatility	TranAD
+Return + APARCH Volatility	TranAD
+
+研究問題變成：
+
+不同波動率模型產生的金融特徵，是否會影響 ETF 異常趨勢偵測結果？
+
+這個研究問題就直接承接你上傳的論文。
+
+因為該論文就是比較 GARCH、EGARCH、GJR-GARCH、APARCH 搭配 TranAD 的結果。
+
+三、方向 3：研究「ETF 之間是否一起異常」⭐⭐
+
+這個我也很推薦，因為你的資料本來就是 9 檔 ETF。
+
+不要只算：
+
+整體市場 anomaly score
+
+可以進一步算：
+
+                ETF
+                 │
+     ┌───────────┼───────────┐
+     ↓           ↓           ↓
+    SPY         QQQ         XLF
+     ↓           ↓           ↓
+ Anomaly      Anomaly      Anomaly
+ Score         Score        Score
+     │           │           │
+     └───────────┼───────────┘
+                 ↓
+       Cross-ETF Anomaly
+                 ↓
+       異常是否同步發生？
+
+例如：
+
+某一天 9 檔 ETF 中有 7 檔同時超過 threshold。
+
+這就可以定義成：
+
+Cross-ETF Anomaly Event
+
+然後研究：
+
+有多少 ETF 同時異常？
+哪些 ETF 最容易一起異常？
+哪些 ETF 通常最早出現異常？
+某個 ETF 異常時，其他 ETF 是否也異常？
+
+這會比單純「TranAD 找異常」更有研究問題。
+
+四、方向 4：研究「市場波動」與「ETF 異常」的關係
+
+這是從論文很自然延伸出來的方向。
+
+論文的核心之一是：
+
+volatility specification 和 anomaly detection 之間的關係。
+
+你的 ETF 版本可以問：
+
+ETF 的異常行為是否主要發生在市場波動升高的期間？
+
+例如：
+
+Market Volatility
+       │
+       ▼
+   高波動期
+       │
+       ▼
+ETF Anomaly Score
+       │
+       ▼
+是否增加？
+
+你可以把：
+
+ETF return
+ETF volatility
+TranAD anomaly score
+
+放在同一張時間圖。
+
+例如：
+
+Anomaly Score
+   ▲
+   │       /\        /\
+   │      /  \      /  \
+   │_____/____\____/____\____
+   │
+   └────────────────────────→ Date
+
+Volatility
+   ▲
+   │       /\        /\
+   │      /  \      /  \
+   │_____/____\____/____\____
+
+然後研究兩者是否具有關聯。
+
+五、方向 5：把「異常偵測」和「Regime Detection」分開
+
+這個其實非常重要。
+
+你上傳的論文有一個很值得你參考的觀念：
+
+Point anomaly detection ≠ Regime detection
+
+論文使用 TranAD 做 point anomaly detection，另外使用 VTT 做 regime-level detection。
+
+你可以把自己的研究變成：
+
+Level 1：Point Anomaly
+今天是不是異常？
+
+↓
+
+Level 2：Persistent Anomaly
+異常是不是連續發生？
+
+↓
+
+Level 3：Anomaly Regime / Event
+是不是進入一段異常市場狀態？
+
+所以：
+
+             TranAD
+                ↓
+       Daily Anomaly Score
+                ↓
+          Point Anomaly
+                ↓
+       Persistent Anomaly
+                ↓
+          Anomaly Event
+                ↓
+       ETF Market Regime
+
+這個架構其實很適合你的「異常趨勢」說法。
+
+六、方向 6：研究哪一檔 ETF 最容易成為異常來源
+
+這個難度不高，但是很適合做實驗結果。
+
+你可以從：
+
+Overall Anomaly Score
+
+拆成：
+
+SPY → 0.012
+QQQ → 0.034
+IWM → 0.018
+XLK → 0.041
+XLF → 0.010
+...
+
+然後找：
+
+哪一檔 ETF 對這次異常事件的 reconstruction error 貢獻最大？
+
+你的結果就可以說：
+
+在某個異常事件期間，XLK 的 reconstruction error 明顯高於其他 ETF，因此可能是該事件中的主要異常來源。
+
+這比只畫一條總 anomaly score 更有解釋性。
+
+七、如果我是你，我會選這個研究架構
+
+以你現在是大學生、希望不要做得太複雜的情況，我不建議一次把 GARCH、EGARCH、APARCH、VTT、LSTM 全塞進去。
+
+我會做：
+
+                 ETF Historical Data
+                         │
+                         ▼
+                 Daily Return
+                         │
+                         ▼
+              Standardization
+                         │
+                         ▼
+                 Sliding Window
+                         │
+                         ▼
+              ┌─────────────────┐
+              │      TranAD      │
+              │                 │
+              │ Phase 1         │
+              │      ↓          │
+              │ Focus Score     │
+              │      ↓          │
+              │ Phase 2         │
+              └────────┬────────┘
+                       ↓
+                Daily Anomaly
+                    Score
+                       ↓
+                95% Threshold
+                       ↓
+              ┌────────┴────────┐
+              ↓                 ↓
+        Point Anomaly     Normal
+              ↓
+       Persistent Anomaly
+              ↓
+        Anomaly Event
+              ↓
+      ┌─────────────────────┐
+      │ Cross-ETF Analysis  │
+      │                     │
+      │ 哪些 ETF 異常？      │
+      │ 是否同步異常？       │
+      │ 哪檔 ETF 貢獻最大？  │
+      └─────────────────────┘
+八、那 GARCH 要不要放？
+
+我會把它放成 第二階段實驗，而不是一開始就加入。
+
+第一階段
+
+你的 baseline：
+
+$$ ETF\ Return \rightarrow TranAD $$
+
+先確認 TranAD 可以正常偵測。
+
+第二階段
+
+加入金融波動資訊：
+
+$$ ETF\ Return + Volatility \rightarrow TranAD $$
+
+例如：
+
+$$ X_t=[r_t,\sigma_t] $$
+第三階段
+
+如果時間夠，再比較：
+
+$$ GARCH $$
+
+vs
+
+$$ EGARCH $$
+
+vs
+
+$$ GJR-GARCH $$
+
+vs
+
+$$ APARCH $$
+
+這樣就可以形成非常漂亮的實驗：
+
+                TranAD
+                  │
+       ┌──────────┼──────────┐
+       ↓          ↓          ↓
+    Return     Return+σ   Return+σ+z
+       │          │          │
+       └──────────┼──────────┘
+                  ↓
+         Anomaly Detection
+                  ↓
+       Persistent Anomaly
+                  ↓
+          ETF Trend/Event
+⭐ 最後幫你定位
+
+你目前最適合的研究不是：
+
+「我把別人的 TranAD 論文重做一次」
+
+而是：
+
+「以 TranAD 的多變量時間序列異常偵測為基礎，進一步研究多檔 ETF 的持續性異常、跨 ETF 異常同步性與異常事件趨勢。」
+
+而你上傳的這篇 2026 論文可以當作你的重要相關研究與方法基礎：
+
+它提供你：
+
+TranAD
+Two-Phase Self-Conditioning
+Financial volatility features
+GARCH family
+95% threshold
+Point vs regime anomaly 的區分
+
+你可以往外延伸：
+
+ETF-specific anomaly
+Persistent anomaly
+Cross-ETF anomaly
+Anomaly event
+ETF anomaly contribution
+Market regime / trend
+
+這樣就比較容易形成你自己的研究問題，而不是單純複製論文。
