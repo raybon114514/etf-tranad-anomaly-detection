@@ -1,3 +1,12 @@
+import sys
+import os
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import numpy as np
 import pandas as pd
 import torch
@@ -33,9 +42,9 @@ def main():
     windows = np.array(windows, dtype=np.float32)
     target_dates = pd.DatetimeIndex(target_dates)
 
-    win_train = windows[train_mask.values[K_WINDOW - 1 :]]
-    win_test = windows[test_mask.values[K_WINDOW - 1 :]]
-    test_dates = target_dates[test_mask.values[K_WINDOW - 1 :]]
+    win_train = windows[np.asarray(train_mask)[K_WINDOW - 1 :]]
+    win_test = windows[np.asarray(test_mask)[K_WINDOW - 1 :]]
+    test_dates = target_dates[np.asarray(test_mask)[K_WINDOW - 1 :]]
 
     train_loader = DataLoader(win_train, batch_size=64, shuffle=True)
     model = TranAD(feats=feats_dim).to(DEVICE)
@@ -69,6 +78,15 @@ def main():
 
     diagnose_recent_anomaly(test_dates, test_scores, test_attr, anomalies, tickers)
     plot_etf_anomaly_trend(test_dates, close_prices, test_scores, threshold, anomalies)
+
+    results_df = pd.DataFrame({
+        "Date": test_dates.strftime("%Y-%m-%d"),
+        "AnomalyScore": test_scores,
+        "IsAnomaly": anomalies,
+    })
+    results_path = "data/processed/tranad_anomaly_results.csv"
+    results_df.to_csv(results_path, index=False)
+    print(f"-> 測試集推論結果已儲存至: {results_path} (涵蓋至 {results_df['Date'].iloc[-1]})")
 
 
 if __name__ == "__main__":

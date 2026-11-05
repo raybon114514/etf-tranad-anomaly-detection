@@ -7,7 +7,7 @@ def fetch_etf_multivariate_data():
     print("正在下載 ETF 與相關資產歷史資料...")
     # 選擇標的：QQQ (納斯達克ETF), SPY (大盤基準), AAPL (最大成分股)
     tickers = ["QQQ", "SPY", "AAPL"]
-    df = yf.download(tickers, start="2010-01-01", end="2026-03-31", auto_adjust=False)
+    df = yf.download(tickers, start="2010-01-01", auto_adjust=False)
     
     # 提取收盤價與成交量
     close = df["Close"].dropna()

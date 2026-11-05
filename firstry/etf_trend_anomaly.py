@@ -1,3 +1,10 @@
+import sys
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 import numpy as np
 import pandas as pd
 import torch
@@ -19,7 +26,7 @@ K_WINDOW = 30 # 滑動視窗天數
 def fetch_multi_etf_data():
     print("下載大盤與 5 大板塊 ETF 數據...")
     tickers = ["SPY", "QQQ", "XLF", "XLE", "XLV", "XLI"]
-    df = yf.download(tickers, start="2010-01-01", end="2026-03-31", auto_adjust=False)
+    df = yf.download(tickers, start="2010-01-01", auto_adjust=False)
     
     if isinstance(df.columns, pd.MultiIndex):
         close_prices = df["Close"]
@@ -121,11 +128,11 @@ def main():
     windows = np.array(windows, dtype=np.float32)
     target_dates = pd.DatetimeIndex(target_dates)
 
-    # 切分 Dataset (使用 .values 避免 Series 索引不對齊)
-    win_train = windows[train_mask.values[K_WINDOW-1:]]
-    win_val = windows[val_mask.values[K_WINDOW-1:]]
-    win_test = windows[test_mask.values[K_WINDOW-1:]]
-    test_dates = target_dates[test_mask.values[K_WINDOW-1:]]
+    # 切分 Dataset (使用 np.asarray 確保相容 Series 與 ndarray)
+    win_train = windows[np.asarray(train_mask)[K_WINDOW-1:]]
+    win_val = windows[np.asarray(val_mask)[K_WINDOW-1:]]
+    win_test = windows[np.asarray(test_mask)[K_WINDOW-1:]]
+    test_dates = target_dates[np.asarray(test_mask)[K_WINDOW-1:]]
 
     train_loader = DataLoader(win_train, batch_size=64, shuffle=True)
     model = TranAD(feats=feats_dim).to(DEVICE)
@@ -206,9 +213,9 @@ def main():
         # 判斷異常型態
         max_ticker = tickers[np.argmax(attr_pct)]
         if max_ticker == "SPY":
-            print(f"📌 診斷結論: 屬於【宏觀系統性風險】，大盤 (SPY) 發生超預期脫鉤。")
+            print(f"[診斷結論]: 屬於【宏觀系統性風險】，大盤 (SPY) 發生超預期脫鉤。")
         else:
-            print(f"📌 診斷結論: 屬於【板塊結構性破裂】，衝擊主要由 {max_ticker} 外溢，破壞了市場定價慣性。")
+            print(f"[診斷結論]: 屬於【板塊結構性破裂】，衝擊主要由 {max_ticker} 外溢，破壞了市場定價慣性。")
 
     # ============================================================
     # 5. 視覺化：ETF 走勢與異常觸發對照圖 (專題簡報必備)
