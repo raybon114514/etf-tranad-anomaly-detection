@@ -47,7 +47,30 @@
 
 ---
 
-## 三、 下週預計進度 (Next Week's Plan)
+## 三、 分支進度成果 (Feature Branch: `feat/early-warning-system`)
+
+針對專案能否在「市場剛開始不對勁的起頭就發出提示」的核心痛點，已建立專屬分支完成 **早期預警系統 (Early Warning System, EWS)** 的實作與實證：
+
+1. **模組架構 (`src/utils/early_warning.py`)**：
+   * **多階層動態雷達**：捨棄粗糙的單一二元門檻，採用純淨常態期（2010–2018）計算出雙重防線：
+     * 🟢 **安全常態 (NORMAL, Score < 0.59)**：市場定價慣性穩定。
+     * 🟡 **起頭預警 (ONSET_WATCH, 0.59 ≤ Score < 1.71)**：定價慣性開始鬆動，捕捉「不對勁起頭」。
+     * 🟠 **結構裂解 (ELEVATED_RISK)**：特定板塊（如 QQQ）重構誤差集中度突破 45%，衝擊外溢。
+     * 🔴 **臨界爆發 (CRITICAL, Score ≥ 1.71)**：市場結構性破裂。
+   * **時序動量與加速度 (Velocity & Acceleration)**：
+     * 一階差分速度 $v_t = S_t - S_{t-1}$ 與二階加速度 $a_t = v_t - v_{t-1}$。
+     * 當速度與加速度連續轉正陡升時，即使絕對分數不高，亦主動發出「起頭提示（Early Onset Lead Signal）」。
+
+2. **實證回測成果 (`experiments/exp4_early_warning_system.py`)**：
+   * **最新實況驗證（2026-10-28 至 2026-11-05）**：
+     * 在 11/04–11/05 異常分數翻倍暴衝（11.02 $\to$ 12.89）之前，系統於 **10/29–10/30** 偵測到一階速度由 $+0.06$ 陡升至 $+1.59$，**提前 3–4 個交易日** 捕獲到微結構脫鉤的起頭動量！
+   * **成果檔案**：
+     * 預警記錄檔：`data/processed/early_warning_signals.csv`
+     * 預警儀表板：`results/figures/early_warning_dashboard.png`
+
+---
+
+## 四、 下週預計進度 (Next Week's Plan)
 
 1. **實作「持續性異常事件（Persistent Anomaly Event）」與「跨 ETF 同步率」分析模組**：統計 2022–2026 測試期間每次重大異常事件的持續天數、同步異常的 ETF 數量，以及哪一檔板塊 ETF 最常作為領先異常來源。
 2. **進行特徵消融實驗（Ablation Study）**：比較「僅使用對數報酬率」與「加入 GARCH 波動率 / 價差解耦微結構特徵」在跨 ETF 異常事件偵測上的差異。
