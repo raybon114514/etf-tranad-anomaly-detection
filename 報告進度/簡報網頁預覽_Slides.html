@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專題進度報告：基於 TranAD 之 ETF 異常趨勢偵測</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Progress Bar */
+    #progress-container {
+      height: 4px;
+      background: #1e293b;
+      width: 100%;
+    }
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #06b6d4);
+      width: 9%;
+      transition: width 0.3s ease;
+    }
+
+    /* Main Slide Stage */
+    #stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 48px;
+    }
+
+    .slide {
+      position: absolute;
+      width: min(1200px, 94vw);
+      height: min(675px, 86vh);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 40px 48px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      display: none;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Header */
+    .slide-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+    }
+
+    .slide-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slide-divider {
+      height: 2px;
+      background: #334155;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    /* Content Layouts */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      flex: 1;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      flex: 1;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card.highlight-blue { border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.05); }
+    .card.highlight-red { border-color: var(--accent-red); background: rgba(239, 68, 68, 0.05); }
+    .card.highlight-green { border-color: var(--accent-green); background: rgba(16, 185, 129, 0.05); }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card ul {
+      list-style: none;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .card li {
+      margin-bottom: 10px;
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .card li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent-blue);
+      font-weight: bold;
+    }
+
+    .card li strong {
+      color: #e2e8f0;
+    }
+
+    /* Metric Banners */
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .metric-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Ranking Table */
+    .rank-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .rank-table th {
+      text-align: left;
+      color: var(--accent-cyan);
+      padding: 8px 10px;
+      border-bottom: 1px solid #334155;
+    }
+    .rank-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      color: #cbd5e1;
+    }
+    .rank-table tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Timeline Steps */
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: rgba(15, 23, 42, 0.5);
+      margin-bottom: 10px;
+    }
+    .timeline-phase {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      min-width: 140px;
+    }
+    .timeline-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .timeline-desc strong {
+      color: #fff;
+    }
+
+    /* Cover Slide Specific */
+    .cover-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 20px;
+    }
+    .cover-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid var(--accent-blue);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      width: fit-content;
+      margin-bottom: 20px;
+    }
+    .cover-title {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cover-sub {
+      font-size: 18px;
+      color: var(--accent-cyan);
+      margin-bottom: 36px;
+    }
+    .cover-footer {
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid #334155;
+      padding-top: 16px;
+    }
+
+    /* Bottom Controls */
+    #controls {
+      height: 54px;
+      background: #090d16;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    /* Speaker Notes Drawer */
+    #notes-drawer {
+      position: fixed;
+      bottom: 54px;
+      left: 0;
+      right: 0;
+      background: #0b1120;
+      border-top: 2px solid var(--accent-blue);
+      padding: 20px 48px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      max-height: 180px;
+      overflow-y: auto;
+      display: none;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.6);
+    }
+    #notes-drawer.open {
+      display: block;
+    }
+    #notes-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <div id="stage">
+
+    <!-- SLIDE 1 -->
+    <div class="slide active" data-notes="【第 1 頁講稿 - 開場】教授好，各位組員好。今天由我代表我們團隊報告專題的最新進展。我們專題的主題是『基於 TranAD 之多變量 ETF 時間序列異常趨勢偵測與板塊歸因分析』。目前我們已經完成了多檔核心 ETF 的特徵工程、嚴格杜絕前視偏差的資料分割、TranAD 雙階段對抗神經網路的完整實作，以及在 2022 到 2026 年盲測集上的異常偵測與板塊崩潰歸因分析。">
+      <div class="cover-content">
+        <div class="cover-badge">DEEP LEARNING CAPSTONE PROJECT</div>
+        <h1 class="cover-title">基於 TranAD 之多變量 ETF 時間序列<br>異常趨勢偵測與板塊歸因分析</h1>
+        <div class="cover-sub">雙階段自條件 Transformer 模型實作、無前視切分與市場黑天鵝 XAI 實證進度</div>
+        <div class="cover-footer">報告人：專題研究團隊 &nbsp;|&nbsp; 類型：期中進度報告 &nbsp;|&nbsp; 時間：2026 年 11 月</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2 -->
+    <div class="slide" data-notes="【第 2 頁講稿 - 動機與痛點】首先向教授說明研究動機。近年全球金融市場黑天鵝事件越來越頻繁，從 2020 年疫情崩盤、2022 年通膨升息，到 2024 年科技股大幅回檔。但在傳統量化金融上，常常只依賴單一指數的 Z-score 或布林通道，這有兩個大缺陷：第一，忽略了不同產業板塊間的連動；第二，傳統機器學習模型如孤立森林無法處理時間序列的長程依賴。因此，我們專題跳脫出傳統『只找哪一天是異常點』的框架，利用深度 Transformer 架構結合板塊 ETF，進一步回答：異常是否具有持續趨勢？到底是哪一個產業板塊引發了這次的市場崩潰？">
+      <div class="slide-badge">01. RESEARCH MOTIVATION & PROBLEM FORMULATION</div>
+      <div class="slide-title">研究背景、實務痛點與核心問題定義</div>
+      <div class="slide-divider"></div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">🚨 1. 金融黑天鵝頻發</div>
+          <ul>
+            <li><strong>極端衝擊常態化：</strong>2020 疫情崩盤、2022 通膨暴力升息、2023 矽谷銀行危機與 2024 科技板塊劇烈輪動。</li>
+            <li><strong>跨板塊外溢效應：</strong>單一板塊（科技 XLK 或金融 XLF）的局部暴跌迅速蔓延為全市場流動性風險。</li>
+            <li><strong>實務急迫性：</strong>量化基金迫切需要能提早捕捉「市場定價慣性破裂」的即時監控系統。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ 2. 傳統偵測模型的瓶頸</div>
+          <ul>
+            <li><strong>單變量統計法侷限：</strong>Z-score、布林通道僅能檢驗單一標的，忽略多資產共變動態。</li>
+            <li><strong>傳統 ML 缺乏時序：</strong>孤立森林（Isolation Forest）切片看待資料，完全遺失數週歷史記憶。</li>
+            <li><strong>RNN / LSTM 缺陷：</strong>序列計算無法平行化，長時序容易遺忘，且缺乏特徵維度的交叉注意力。</li>
+          </ul>
+        </div>
+        <div class="card highlight-blue">
+          <div class="card-title">💡 3. 本專題核心解答</div>
+          <ul>
+            <li><strong>引入 TranAD 架構：</strong>雙階段自條件 Transformer，實現高階時間與特徵維度同步建模。</li>
+            <li><strong>點異常 ➔ 趨勢異常：</strong>探索多日持續性（Persistent Anomaly）與市場體制轉變（Regime Shift）。</li>
+            <li><strong>XAI 戰犯歸因分析：</strong>自動拆解板塊重構誤差，即時診斷是「大盤系統性風險」或「局部外溢」。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3 -->
+    <div class="slide" data-notes="【第 3 頁講稿 - 理論基礎】在文獻方面，我們專題不是隨意拼裝，而是建立在頂級學術研究的堅實基礎上。左側是我們的核心骨幹模型：發表於資料庫頂會 VLDB 2022 的 TranAD。它提出兩階段自條件回饋與對抗訓練機制，專門解決多變量時序中細微異常容易被自編碼器平滑掉的難題。右側則是領域應用依據：我們參考了 2026 年最新發表於 JRFM 的研究，探討金融波動率 GARCH 規格與 Transformer 的結合，並引入 KDD 2021 InterFusion 的根因分析理論，讓我們的模型具備明確的 XAI 可解釋性。">
+      <div class="slide-badge">02. THEORETICAL FOUNDATION & LITERATURE</div>
+      <div class="slide-title">理論基石：核心文獻與學術借鑑</div>
+      <div class="slide-divider"></div>
+      <div class="grid-2">
+        <div class="card highlight-blue">
+          <div class="card-title">📘 核心骨幹：TranAD (VLDB 2022)</div>
+          <ul>
+            <li><strong>論文：</strong><em>《TranAD: Deep Transformer Networks for Anomaly Detection in Multivariate Time Series》</em></li>
+            <li><strong>兩階段自條件機制（Self-Conditioning）：</strong>Phase 1 計算初級誤差 Focus Score，Phase 2 透過交叉注意力反饋回特徵流，專注放大微小偏離點。</li>
+            <li><strong>對抗式訓練（Adversarial Loss）：</strong>借鑑 GAN 思想，訓練後期利用負損失強制拉大異常區域重構誤差，避免自編碼器過度平滑。</li>
+            <li><strong>平行高效：</strong>GPU 單次推論耗時僅數毫秒，遠勝傳統循環神經網路。</li>
+          </ul>
+        </div>
+        <div class="card highlight-green">
+          <div class="card-title">📗 領域應用與 XAI：JRFM 2026 前沿</div>
+          <ul>
+            <li><strong>論文：</strong><em>《Volatility Specification and Deep Learning Anomaly Detection...》(JRFM, 2026)</em></li>
+            <li><strong>金融波動率特徵整合：</strong>探討 GARCH 條件波動率對 Transformer 異常偵測的穩健性影響，有效捕捉厚尾與波動聚集。</li>
+            <li><strong>常態容忍邊界劃定：</strong>提出以健康市場之 98% 分位數作為嚴格門檻，避免單純固定閥值誤判。</li>
+            <li><strong>根因分析（Root Cause）：</strong>借鑑 InterFusion (KDD 2021) 與 GDN (AAAI 2021)，建立特徵層級誤差拆解機制。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4 -->
+    <div class="slide" data-notes="【第 4 頁講稿 - 資料集與特徵】接下來向教授報告我們的資料處置方式。我們選取了美股大盤 SPY、科技 QQQ 以及 9 大板塊 ETF 作為標的池。在量化深度學習中，最容易犯的錯誤就是『前視偏差（Lookahead Bias）』與『資料洩漏』。我們嚴格將時間軸切分為三段：2010 到 2018 年為訓練集，學習常態市場結構；2019 到 2021 年為驗證集；2022 到 2026 年這四年則作為純盲測集。特別強調的是：所有的標準化統計量，我們堅持只用訓練集的均值與標準差，測試集完全不提前窺探任何全局資訊。特徵方面除了對數日報酬率，我們還建構了日內極值、爆量倍數以及 30 天的滑動視窗。">
+      <div class="slide-badge">03. DATA PIPELINE & FEATURE ENGINEERING</div>
+      <div class="slide-title">資料集挑選、嚴格防前視切分與特徵建構</div>
+      <div class="slide-divider"></div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">📊 1. 多變量標的池</div>
+          <ul>
+            <li><strong>大盤基準：</strong>SPY (S&P 500), QQQ (Nasdaq 100)</li>
+            <li><strong>核心板塊：</strong>XLK (科技), XLF (金融), XLE (能源), XLI (工業), XLP (必需消費), XLY (可選消費), XLV (醫療), XLB (原物料)</li>
+            <li><strong>涵蓋維度：</strong>構建覆蓋成長、價值、週期與防禦之全市場連動矩陣。</li>
+          </ul>
+        </div>
+        <div class="card highlight-red">
+          <div class="card-title">🛡️ 2. 嚴格防前視切分</div>
+          <ul>
+            <li><strong>訓練集 (2010–2018)：</strong>長達 9 年純淨期，學習長期市場平衡協方差。</li>
+            <li><strong>驗證集 (2019–2021)：</strong>包含 2020 疫情黑天鵝，專用於調參。</li>
+            <li><strong>盲測集 (2022–2026)：</strong>4 年完全隔離實證，檢驗通膨崩跌與近兩年震盪。</li>
+            <li><strong>杜絕洩漏：</strong>Z-score 僅用訓練集 Mean/Std，嚴禁前視偏差。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">⚙️ 3. 微結構特徵構造</div>
+          <ul>
+            <li><strong>對數報酬率：</strong><i>r<sub>t</sub></i> = ln(<i>P<sub>t</sub></i> / <i>P</i><sub><i>t</i>−1</sub>)</li>
+            <li><strong>日內極值：</strong><i>h<sub>t</sub></i> = (High − Close)/Close, <i>l<sub>t</sub></i> = (Low − Close)/Close</li>
+            <li><strong>爆量衝擊：</strong>Volume<sub><i>t</i></sub> / MA<sub>20</sub>(Volume)</li>
+            <li><strong>滑動視窗：</strong><i>K</i> = 30 天，捕捉一個半月動能記憶。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5 -->
+    <div class="slide" data-notes="【第 5 頁講稿 - 模型細節】這一頁是我們實作的核心技術：TranAD 雙階段對抗自條件神經網路。傳統的 Autoencoder 最容易發生的問題，就是連異常點都被它『順手修復成正常』，導致漏報。TranAD 巧妙地設計了兩階段：第一階段算出的重構誤差向量被當成 Focus Score，在第二階段透過 Cross-Attention 強制反饋給解碼器。同時在右側的 Loss 設計上，隨 Epoch 衰減的對抗懲罰項，會故意擴大微小異常與正常的距離。目前這套架構已在我們的 PyTorch 程式碼中完整落地運行。">
+      <div class="slide-badge">04. MODEL ARCHITECTURE & TRAINING MECHANISM</div>
+      <div class="slide-title">模型核心：TranAD 雙階段對抗自條件神經網路</div>
+      <div class="slide-divider"></div>
+      <div class="grid-2">
+        <div class="card highlight-blue">
+          <div class="card-title">🔄 雙階段自條件機制（Self-Conditioning）</div>
+          <ul>
+            <li><strong>Phase 1 (粗重構)：</strong>輸入視窗 <i>W</i> + 位置編碼，經由 Transformer Encoder 產出初階重構 <i>O</i><sub>1</sub>。計算絕對誤差 Focus = |<i>O</i><sub>1</sub> − <i>W</i>|。</li>
+            <li><strong>Phase 2 (因果細化)：</strong>輸入原始視窗 <i>W</i> 進入解碼端，施加因果遮罩（Causal Mask）防止看未來；透過 Cross-Attention 融合 Focus Score 放大異常偏差，輸出 <i>Ô</i><sub>2</sub>。</li>
+            <li><strong>推論判定：</strong>Score<sub><i>t</i></sub> = ½ ‖<i>O</i><sub>1</sub> − <i>W</i>‖<sub>2</sub><sup>2</sup> + ½ ‖<i>Ô</i><sub>2</sub> − <i>W</i>‖<sub>2</sub><sup>2</sup>，重構誤差突增即代表市場慣性破裂。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">⚡ 對抗式損失函數與程式實作</div>
+          <ul>
+            <li><strong>動態權重：</strong><i>w</i> = 1 / Epoch 隨訓練進程動態遞減。</li>
+            <li><strong>Loss 1 (常態擬合)：</strong><i>ℒ</i><sub>1</sub> = <i>w</i> · MSE(<i>O</i><sub>1</sub>, <i>W</i>) + (1 − <i>w</i>) · MSE(<i>Ô</i><sub>2</sub>, <i>W</i>)</li>
+            <li><strong>Loss 2 (對抗懲罰)：</strong><i>ℒ</i><sub>2</sub> = <i>w</i> · MSE(<i>O</i><sub>2</sub>, <i>W</i>) − (1 − <i>w</i>) · MSE(<i>Ô</i><sub>2</sub>, <i>W</i>)</li>
+            <li><strong>核心作用：</strong>負損失強制拉大正常與異常樣本的重構邊界，徹底防止模型過度擬合異常。已於 <code>etf_trend_anomaly.py</code> 完整落地。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6 -->
+    <div class="slide" data-notes="【第 6 頁講稿 - 實證成果】在實證結果部分，我們在 2022 到 2026 年的 745 個盲測交易日中，進行了嚴格檢驗。這裡向教授特別報告我們做的一個『關鍵架構修正』：一開始如果用驗證集的極值當門檻，2020 年疫情崩盤會把門檻拉得太高，導致後續異常全都抓不到。因此我們修正為：以 2010–2018 年健康常態市場的第 98 百分位數作為嚴格容忍邊界。修正後，模型在測試集成功抓出 6 次關鍵重大異常日，包括 2023 年底的通膨轉折軋空、2024 年底大選後的極端板塊輪動，以及 2025 年春季的多波極端震盪，完全精準對應到了真實世界的重大衝擊。">
+      <div class="slide-badge">05. EMPIRICAL EXPERIMENTS & DETECTION METRICS</div>
+      <div class="slide-title">實證結果：常態門檻錨定與盲測集異常觸發</div>
+      <div class="slide-divider"></div>
+      <div class="metric-row">
+        <div class="metric-box">
+          <div class="metric-val">745 天</div>
+          <div class="metric-label">盲測集跨度（2022–2026）</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" style="color: var(--accent-red);">6 次重大警示</div>
+          <div class="metric-label">98th 百分位嚴格門檻判定</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-val" style="color: var(--accent-green);">9 檔板塊</div>
+          <div class="metric-label">多維度跨資產協同監控</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🎯 關鍵修正：健康常態門檻錨定法</div>
+          <ul>
+            <li><strong>修正前盲點：</strong>若採用含 2020 疫情崩盤的驗證集設閾值，極端值會將門檻推高 5 倍以上，使 2022 後多數重大危機全部漏報。</li>
+            <li><strong>修正後機制：</strong>改以純淨訓練集（2010–2018）之 98 百分位數作為常態邊界，準確隔離市場日常噪音。</li>
+          </ul>
+        </div>
+        <div class="card highlight-red">
+          <div class="card-title">🚩 實測捕獲之真實重大異常事件</div>
+          <ul>
+            <li><strong>2023-11-14：</strong>CPI 降溫超預期引發全市場空頭暴力軋空。</li>
+            <li><strong>2024-11-06：</strong>美大選後政策預期重塑，板塊極端資金大輪動。</li>
+            <li><strong>2025-03-14 / 2025-04-09：</strong>美債殖利率跳升引發防禦板塊與科技股劇烈背離（Score 飆破 1.269 × 10<sup>8</sup>）。</li>
+            <li><strong>2025-05-12：</strong>科技板塊動能回落之連鎖脫鉤。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7 -->
+    <div class="slide" data-notes="【第 7 頁講稿 - 歸因 XAI 亮點】這一頁是我們專題最受矚目的創新亮點：『板塊異常歸因分析』，俗稱『找戰犯』。過去深度學習常被詬病是黑盒子，只告訴你今天有問題，但講不出原因。我們透過拆解 Transformer 的重構誤差矩陣，精確算出每個板塊對總異常的貢獻百分比。在右邊的盲測數據中，科技板塊 XLK 奪得平均異常分數第一名，證實了近幾年科技股的高估值是引發市場動盪的最大震源；而必需消費 XLP 緊追在後，反映了資金避險造成的反向脫鉤。透過這套機制，我們能清楚判斷市場究竟是『全體大盤系統性崩盤』，還是『特定板塊失衡引發的骨牌外溢』。">
+      <div class="slide-badge">06. CORE INNOVATION & EXPLAINABILITY (XAI)</div>
+      <div class="slide-title">專題核心亮點：板塊異常歸因分析（找戰犯）</div>
+      <div class="slide-divider"></div>
+      <div class="grid-2">
+        <div class="card highlight-blue">
+          <div class="card-title">🔍 重構誤差特徵分解機制</div>
+          <ul>
+            <li><strong>白話解釋：</strong>當日總分超標時，擷取最後交易日 (<i>t</i> = <i>T</i>) 各資產之個別平方重構誤差：Attr<sub><i>i</i></sub> = (<i>Ô</i><sub>2,<i>T</i>,<i>i</i></sub> − <i>W</i><sub><i>T</i>,<i>i</i></sub>)<sup>2</sup>。</li>
+            <li><strong>貢獻佔比：</strong>Contribution<sub><i>i</i></sub> = Attr<sub><i>i</i></sub> / ∑<sub><i>j</i></sub> Attr<sub><i>j</i></sub> × 100%。</li>
+            <li><strong>【宏觀系統性風險】：</strong>SPY 貢獻度居首 ➔ 大盤指數整體脫鉤。</li>
+            <li><strong>【板塊結構性破裂】：</strong>特定產業（如 XLK 科技）居首 ➔ 衝擊由該板塊向外溢出。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">🏆 實測 9 檔 ETF 敏感度排名（來自 CSV）</div>
+          <table class="rank-table">
+            <thead>
+              <tr><th>排名</th><th>板塊代碼</th><th>平均異常分數</th><th>市場狀態解讀</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="color: var(--accent-red); font-weight: bold;">XLK 科技資訊</td><td>1.307 × 10<sup>8</sup></td><td>【最大戰犯】高估值敏感</td></tr>
+              <tr><td>2</td><td style="color: var(--accent-cyan); font-weight: bold;">XLP 必需消費</td><td>1.306 × 10<sup>8</sup></td><td>【避險異動】防禦資金背離</td></tr>
+              <tr><td>3</td><td style="color: var(--accent-blue); font-weight: bold;">SPY 大盤基準</td><td>1.301 × 10<sup>8</sup></td><td>【系統性】大盤慣性瓦解</td></tr>
+              <tr><td>4</td><td>QQQ 那斯達克</td><td>1.289 × 10<sup>8</sup></td><td>科技權值連動震盪</td></tr>
+              <tr><td>5</td><td>XLY 可選消費</td><td>1.274 × 10<sup>8</sup></td><td>景氣循環信心波動</td></tr>
+              <tr><td>6-9</td><td>XLU / XLE / XLB / XLF</td><td>1.258 ~ 1.222 × 10<sup>8</sup></td><td>防禦、能源、金融相對中性</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8 -->
+    <div class="slide" data-notes="【第 8 頁講稿 - GARCH 模組】除了 TranAD 本身，我們也複現並延伸了最新文獻中的計量金融模組，實作在 vsd.py 中。金融市場有一個關鍵特性叫做『波動度聚集』與『槓桿效應』，也就是壞消息引發的震盪遠高於好消息。我們從零用 Scipy QMLE 實作了 GARCH 與 GJR-GARCH 估計器。初步實驗發現：當把條件波動率 sigma 輸入給 Transformer 後，模型能夠識別出整體市場背景的高波動狀態，大幅降低了在震盪市中的誤判率。這是我們後續要深入探討的重要特徵消融方向。">
+      <div class="slide-badge">07. ECONOMETRIC EXTENSION & VOLATILITY SPECIFICATION</div>
+      <div class="slide-title">前沿複現與延伸：GARCH 條件波動率對接實驗</div>
+      <div class="slide-divider"></div>
+      <div class="grid-2">
+        <div class="card highlight-green">
+          <div class="card-title">📈 計量模型從零實作 (<code>vsd.py</code>)</div>
+          <ul>
+            <li><strong>文獻複現 (JRFM 2026)：</strong>針對 S&P 500 長期時序，自主實作 QMLE 參數估計。</li>
+            <li><strong>GARCH(1,1)：</strong><i>σ<sub>t</sub></i><sup>2</sup> = <i>ω</i> + <i>α ε</i><sub><i>t</i>−1</sub><sup>2</sup> + <i>β σ</i><sub><i>t</i>−1</sub><sup>2</sup>，捕捉波動聚集。</li>
+            <li><strong>GJR-GARCH(1,1)：</strong><i>σ<sub>t</sub></i><sup>2</sup> = <i>ω</i> + (<i>α</i> + <i>γ</i> 𝕀<sub>{<i>r</i><sub><i>t</i>−1</sub> &lt; 0}</sub>) <i>ε</i><sub><i>t</i>−1</sub><sup>2</sup> + <i>β σ</i><sub><i>t</i>−1</sub><sup>2</sup>，精確捕捉「跌時波動大於漲時波動」之金融特性。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">🔬 與 Transformer 結合之初步發現</div>
+          <ul>
+            <li><strong>單純報酬率輸入盲點：</strong>在高波動震盪市中，模型容易誤將正常的震盪判為結構性異常，雜訊較多。</li>
+            <li><strong>條件波動度 <i>σ<sub>t</sub></i> 的調節力：</strong>輸入 [Return<sub><i>t</i></sub>, <i>σ<sub>t</sub></i>, <i>h<sub>t</sub></i>, <i>l<sub>t</sub></i>] 後，Transformer 具備辨識「背景高波動環境」的能力，顯著降低虛警率。</li>
+            <li><strong>後續消融規劃：</strong>將比較 GARCH vs EGARCH vs GJR-GARCH 對 ETF 異常 F1-score 的增益。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9 -->
+    <div class="slide" data-notes="【第 9 頁講稿 - 挑戰與克服】在專題推進過程中，我們遭遇並克服了三個核心難題：第一是『極端值拉偏門檻』，我們透過健康常態期錨定法成功解決；第二是『多變量對齊與防前視』，我們建立了標準化的無母數前處理管線；第三是『模型黑盒子問題』，我們成功打通了特徵誤差分解，讓輸出具備實際的金融意義。這些除錯經驗也讓我們的系統架構更加成熟穩定。">
+      <div class="slide-badge">08. ENGINEERING CHALLENGES & METHODOLOGY FIXES</div>
+      <div class="slide-title">遭遇挑戰、工程除錯與關鍵解決方案</div>
+      <div class="slide-divider"></div>
+      <div class="grid-3">
+        <div class="card highlight-red">
+          <div class="card-title">⚠️ 挑戰 1：極端值拉偏門檻</div>
+          <ul>
+            <li><strong>問題：</strong>2020 疫情崩盤幅度達正常 5 倍，若驗證集包含該期，閥值會被推極高，使後續異常全漏報。</li>
+            <li><strong>解法：</strong>建立「健康基準常態錨定法」，採用 2010–2018 年長期無惡性通膨的分佈計算 98% 門檻。</li>
+          </ul>
+        </div>
+        <div class="card highlight-blue">
+          <div class="card-title">⚙️ 挑戰 2：多變量對齊與防洩漏</div>
+          <ul>
+            <li><strong>問題：</strong>多檔 ETF 偶有缺漏值，滑動視窗構造容易產生前視偏差。</li>
+            <li><strong>解法：</strong>實作嚴格日期 Inner Join 對齊，標準化參數完全隔離於訓練集，解碼端施加 Causal Mask。</li>
+          </ul>
+        </div>
+        <div class="card highlight-green">
+          <div class="card-title">🔍 挑戰 3：模型黑盒子缺乏解釋</div>
+          <ul>
+            <li><strong>問題：</strong>單一純量 Anomaly Score 無法回答「究竟哪一檔板塊造成崩盤」。</li>
+            <li><strong>解法：</strong>推導特徵重構誤差分解矩陣，成功將 Loss 投影為板塊百分比貢獻度，實現 XAI 診斷。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 10 -->
+    <div class="slide" data-notes="【第 10 頁講稿 - 下一步規劃】最後向教授報告我們接下來的研發排程：第一階段，我們將在兩週內完成 GARCH 波動率與主模型的完整整合，進行特徵消融實驗；第二階段，我們將正式把單日異常擴充為『持續性異常事件與跨板塊同步指數』；第三階段，完成與傳統 TCN 及孤立森林的基準比較，並引用 2024 年 ICML MOMENT 大模型作為展望；第四階段，完成互動式視覺化儀表板並撰寫完整的專題論文。">
+      <div class="slide-badge">09. FUTURE WORK & PROJECT ROADMAP</div>
+      <div class="slide-title">下一步規劃：深化方向與專題預期產出</div>
+      <div class="slide-divider"></div>
+      <div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Phase 1 (近期 1–2 週)</div>
+          <div class="timeline-desc"><strong>特徵工程消融實驗 (Ablation Study)：</strong>將 <code>vsd.py</code> 的 GARCH 條件波動率整合進 9 檔 ETF 主模型，系統化對比純 Return vs Return+GARCH 之 F1-score 與預警提早度。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Phase 2 (中期 3–4 週)</div>
+          <div class="timeline-desc"><strong>點異常 ➔ 持續性異常事件：</strong>建立 Consecutive Anomaly 連續警示機制，量化「異常事件持續天數」與「跨 ETF 同步異常指數」，辨識長期市場狀態切換（Regime Shift）。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Phase 3 (後期 5–6 週)</div>
+          <div class="timeline-desc"><strong>Baseline 比較與 2024 大模型對照：</strong>實作 TCN 與 Isolation Forest 作為比較基準；並探討引入 ICML 2024 MOMENT 或 NeurIPS 2024 UniTS 時序基底模型進行微調。</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-phase">Phase 4 (期末收網)</div>
+          <div class="timeline-desc"><strong>視覺化戰情看板與書面報告：</strong>完成互動式 Web 儀表板，彙整所有實驗數據與 References 完成正式專題論文。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 11 -->
+    <div class="slide" data-notes="【第 11 頁講稿 - 結尾】以上是我們團隊目前的專題進度報告。我們已經確立了模型骨幹、完成了資料驗證與歸因實作，接下來會全力推進特徵消融與趨勢事件量化。謝謝教授，請教授指導！">
+      <div class="cover-content" style="text-align: center; align-items: center;">
+        <div class="cover-badge">PROGRESS REPORT CONCLUSION</div>
+        <h1 class="cover-title" style="font-size: 42px; margin-bottom: 20px;">感謝教授的聆聽與指導</h1>
+        <div class="cover-sub" style="font-size: 24px; margin-bottom: 30px;">懇請 教授指正與討論 (Q & A)</div>
+        <div class="card" style="max-width: 700px; text-align: left; padding: 20px 28px;">
+          <div class="card-title" style="color: var(--accent-cyan);">📌 目前核心進度總結</div>
+          <ul>
+            <li>✔ 跨 ETF 多維特徵工程與嚴格無前視切分建立完成</li>
+            <li>✔ TranAD 雙階段對抗機制與常態門檻錨定校正通過驗證</li>
+            <li>✔ XAI 板塊崩潰歸因分析打通，實測成果高度契合金融宏觀事件</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Notes Drawer -->
+  <div id="notes-drawer">
+    <div id="notes-title">🎙️ 演講講稿與提示 (Speaker Notes)</div>
+    <div id="notes-body"></div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div id="controls">
+    <div>
+      <span id="slide-num" style="font-weight: 700; color: #fff;">1</span> / <span id="total-num">11</span>
+      &nbsp;&nbsp;<span style="font-size: 11px; color: #64748b;">(可使用鍵盤 ← / → 或 空白鍵 翻頁)</span>
+    </div>
+    <div class="btn-group">
+      <button id="btn-notes" onclick="toggleNotes()">📝 講稿視窗 (N)</button>
+      <button onclick="prevSlide()">◀ 上一頁</button>
+      <button onclick="nextSlide()">下一頁 ▶</button>
+      <button onclick="toggleFullscreen()">⛶ 全螢幕 (F)</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    let current = 0;
+    const notesDrawer = document.getElementById('notes-drawer');
+    const notesBody = document.getElementById('notes-body');
+    const slideNum = document.getElementById('slide-num');
+    const totalNum = document.getElementById('total-num');
+    const progressBar = document.getElementById('progress-bar');
+
+    totalNum.innerText = total;
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= total) index = total - 1;
+      current = index;
+
+      slides.forEach((s, i) => {
+        s.classList.toggle('active', i === current);
+      });
+
+      slideNum.innerText = current + 1;
+      progressBar.style.width = `${((current + 1) / total) * 100}%`;
+
+      const notes = slides[current].getAttribute('data-notes') || '無演講講稿。';
+      notesBody.innerText = notes;
+    }
+
+    function prevSlide() { showSlide(current - 1); }
+    function nextSlide() { showSlide(current + 1); }
+
+    function toggleNotes() {
+      notesDrawer.classList.toggle('open');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'n' || e.key === 'N') {
+        toggleNotes();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>

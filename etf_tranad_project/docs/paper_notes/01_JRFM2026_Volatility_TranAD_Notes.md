@@ -2,7 +2,7 @@
 
 * **論文標題**：*Volatility Specification and Deep Learning Anomaly Detection: Robustness of Transformer Architectures to GARCH Model Choice*
 * **期刊與年份**：Journal of Risk and Financial Management (JRFM), 2026
-* **原始檔案位置**：[`Volatility Specification and Deep Learning Anomaly Detection... (JRFM, 2026).pdf`](../../Volatility%20Specification%20and%20Deep%20Learning%20Anomaly%20Detection%20Robustness%20of%20Transformer%20Architectures%20to%20GARCH%20Model%20Choice%20(JRFM,%202026).pdf)
+* **原始檔案位置**：[`Volatility Specification and Deep Learning Anomaly Detection... (JRFM, 2026).pdf`](../../../papers/core/Volatility%20Specification%20and%20Deep%20Learning%20Anomaly%20Detection%20Robustness%20of%20Transformer%20Architectures%20to%20GARCH%20Model%20Choice%20%28JRFM,%202026%29.pdf)
 
 ---
 

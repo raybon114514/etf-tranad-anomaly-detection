@@ -1,0 +1,29 @@
+# Python caches & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment & secrets
+.env
+.env.*
+
+# OS, Editor & Office temp files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+~$*.pptx
+~$*.docx
+~$*.xlsx
+
+# Raw data caches & model checkpoints
+etf_tranad_project/data/raw/*.csv
+etf_tranad_project/data/raw/*.parquet
+etf_tranad_project/results/checkpoints/*.pt
+etf_tranad_project/results/checkpoints/*.pth

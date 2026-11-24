@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>claude改進版.py 教授說明簡報 (含論文公式剖析)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0F172A; color: #334155;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .slide {
+    display: none; width: min(1240px, 96vw); height: min(698px, 88vh);
+    background: #F8FAFC; border-radius: 14px; padding: 26px 34px 22px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45); flex-direction: column; overflow: hidden;
+  }
+  .slide.active { display: flex; }
+  .dark-slide { background: #0F172A; color: #F8FAFC; border: 1px solid #1E293B; }
+  .cover-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 18px; }
+  .pill-badge {
+    display: inline-block; width: fit-content; padding: 6px 14px; border-radius: 6px;
+    background: #2563EB; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 22px;
+  }
+  .cover-h1 { font-size: 36px; line-height: 1.3; font-weight: 800; color: #fff; margin-bottom: 14px; }
+  .cover-sub { font-size: 18px; color: #38BDF8; margin-bottom: 34px; }
+  .cover-cards { margin-bottom: 34px; }
+  .dark-card { background: #1E293B; border: 1.5px solid #334155; border-radius: 10px; padding: 16px 18px; }
+  .dark-card h3 { color: #38BDF8; font-size: 15px; margin-bottom: 8px; }
+  .dark-card p { color: #E2E8F0; font-size: 13px; line-height: 1.55; }
+  .cover-foot { color: #94A3B8; font-size: 12.5px; border-top: 1px solid #334155; padding-top: 14px; }
+  .s-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px; margin-bottom: 14px; }
+  .s-tag { font-size: 11px; font-weight: 800; color: #2563EB; letter-spacing: 0.8px; margin-bottom: 4px; }
+  .s-head h2 { font-size: 21.5px; color: #1E293B; font-weight: 800; }
+  .page-pill { background: #EFF6FF; border: 1px solid #93C5FD; color: #2563EB; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 999px; white-space: nowrap; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+  .grid-2-asym { display: grid; grid-template-columns: 1.38fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; flex: 1; min-height: 0; }
+  .kpi-row, .cover-cards { flex: 0 0 auto !important; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .card { background: #fff; border: 1.5px solid #E2E8F0; border-radius: 10px; padding: 13px 15px; display: flex; flex-direction: column; min-height: 0; }
+  .card h3 { font-size: 14px; font-weight: 800; color: #1E293B; margin-bottom: 8px; }
+  .card ul { list-style: none; font-size: 12.2px; line-height: 1.55; color: #334155; }
+  .card li { margin-bottom: 7px; }
+  .big-list li { margin-bottom: 16px; font-size: 13.5px; line-height: 1.6; }
+  .step-box { border-radius: 8px; padding: 12px; border: 1.5px solid #CBD5E1; }
+  .step-box h4 { font-size: 13px; margin-bottom: 6px; color: #0F172A; }
+  .step-box p { font-size: 11.8px; line-height: 1.5; color: #334155; }
+  .kpi { border-radius: 8px; padding: 10px 14px; border: 1.5px solid; display: flex; flex-direction: column; gap: 4px; }
+  .kpi span { font-size: 11.5px; font-weight: 700; color: #475569; }
+  .kpi strong { font-size: 13.5px; color: #0F172A; }
+  .fit-img { width: 100%; object-fit: contain; display: block; margin: auto; }
+  .eq-img { max-width: 100%; max-height: 46px; object-fit: contain; margin: 4px auto 8px; display: block; }
+  .caption { font-size: 11.5px; color: #475569; margin-top: 6px; line-height: 1.45; }
+  .clean-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .clean-table th { background: #1E293B; color: #fff; text-align: left; padding: 8px 10px; }
+  .clean-table td { padding: 8px 10px; border-bottom: 1px solid #E2E8F0; color: #334155; }
+  .clean-table tr:nth-child(even) td { background: #F1F5F9; }
+  .clean-table.compact th { background: #2563EB; padding: 6px 8px; font-size: 11.5px; }
+  .clean-table.compact td { padding: 5.5px 8px; font-size: 11.5px; }
+  .border-blue { border-color: #2563EB !important; }
+  .border-emerald { border-color: #059669 !important; }
+  .border-coral { border-color: #DC2626 !important; }
+  .border-amber { border-color: #D97706 !important; }
+  .border-navy { border-color: #1E293B !important; }
+  .bg-blue { background: #EFF6FF !important; }
+  .bg-emerald { background: #ECFDF5 !important; }
+  .bg-coral { background: #FEF2F2 !important; }
+  .bg-amber { background: #FFFBEB !important; }
+  .c-blue { color: #2563EB !important; }
+  .c-emerald { color: #059669 !important; }
+  .c-coral { color: #DC2626 !important; }
+  .c-amber { color: #D97706 !important; }
+  .bold { font-weight: 700; }
+  code { background: rgba(148,163,184,0.2); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+  #bar { height: 48px; background: #090D16; border-top: 1px solid #1E293B; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; color: #94A3B8; font-size: 13px; }
+  button { background: #1E293B; color: #F8FAFC; border: 1px solid #334155; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  button:hover { background: #2563EB; border-color: #2563EB; }
+</style>
+</head>
+<body>
+  <div id="stage">
+        <section class="slide active dark-slide">
+          <div class="cover-wrap">
+            <span class="pill-badge">US ETF ANOMALY RADAR · TRANAD CAPSTONE PROJECT</span>
+            <h1 class="cover-h1">跨板塊美股 ETF 風險異常偵測與<br>成因診斷系統（基於 TranAD）</h1>
+            <p class="cover-sub">「美股市場異常雷達」— 抓出板塊脫鉤變天訊號、找出出事產業，並剖析背後數學與程式改進</p>
+            <div class="grid-3 cover-cards">
+              <div class="dark-card border-blue">
+                <h3>解決什麼痛點？</h3>
+                <p>抓出「大盤看似沒事、底下板塊已脫鉤」的結構風險，避免只看單日漲跌幅漏報</p>
+              </div>
+              <div class="dark-card border-emerald">
+                <h3>能幫使用者幹嘛？</h3>
+                <p>亮燈時立刻判斷該「全市場降槓桿避險」還是「只針對單一板塊換倉」</p>
+              </div>
+              <div class="dark-card border-coral">
+                <h3>理論剖析與工程除錯</h3>
+                <p>拆解 4 組論文公式並修復抵消 / 拖尾 Bug；盲測異常率 40.0% ➔ 2.5%</p>
+              </div>
+            </div>
+            <div class="cover-foot">主講檔案：<code>firstry/claude改進版.py</code> ｜ 對照文獻：Tuli et al., TranAD (VLDB 2022) ｜ 資料期間：2010-01-05 ~ 2026-11-13</div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">01 PLAIN-ENGLISH PURPOSE &amp; WORKFLOW</div><h2>我們在做什麼？用「平靜期默契」抓出市場變天與出事產業</h2></div>
+            <span class="page-pill">02 / 13</span>
+          </div>
+          <div class="grid-3" style="margin-bottom:14px;">
+            <div class="card bg-coral border-coral">
+              <h3 class="c-coral">1. 痛點：只看大盤漲跌會漏掉風險</h3>
+              <ul>
+                <li><strong>傳統看盤盲點：</strong>只盯 SPY 今天跌幾%，但危機剛冒頭時大盤看似風平浪靜，底下板塊已開始「各走各的」。</li>
+                <li><strong>為何選 TranAD？</strong>一般 Autoencoder 太會「順手把小異常修成正常」；TranAD 用兩階段機制放大脫鉤裂縫。</li>
+              </ul>
+            </div>
+            <div class="card bg-blue border-blue">
+              <h3 class="c-blue">2. 做法：教 AI 記住平靜期的默契</h3>
+              <ul>
+                <li><strong>學習健康範本：</strong>拿 2010–2018 年平穩市場教模型記住 <code>SPY, QQQ, XLF, XLE, XLV, XLI</code> 誰跟誰一起動。</li>
+                <li><strong>怎麼抓異常？</strong>2022–2026 盲測時模型照過去默契推算走勢，「猜錯越多 ＝ 今天市場越反常」。</li>
+              </ul>
+            </div>
+            <div class="card bg-emerald border-emerald">
+              <h3 class="c-emerald">3. 價值：不只亮燈，還給出避險處方</h3>
+              <ul>
+                <li><strong>過濾警報疲勞：</strong>只對比平靜期 98% 日子更反常的日子亮燈（2.5% 關鍵警報，不再天天亂叫）。</li>
+                <li><strong>看佔比決定動作：</strong>誤差分散 (&lt;35%) ➔ 全市場降槓桿；集中 (≥35%) ➔ 抓出單一戰犯板塊換倉。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="card kpi-row">
+            <h3>claude改進版.py 大白話運作 4 步驟（昨晚收盤跑一次 ➔ 決定今天怎麼調整部位）</h3>
+            <div class="grid-4">
+              <div class="step-box bg-blue"><h4>Step 1 看這 6 檔怎麼動</h4><p>計算 6 大 ETF 每日漲跌幅<br>只用 2010–18 標準縮放（無前視）</p></div>
+              <div class="step-box bg-emerald"><h4>Step 2 學平靜期連動默契</h4><p>看過去 30 天（因果遮罩防偷看）<br>雙優化器對抗放大可疑偏差</p></div>
+              <div class="step-box bg-amber"><h4>Step 3 看今天猜錯多少</h4><p>只算最新一天 Day t 誤差總和<br>超過平靜期 98% 水準就亮燈</p></div>
+              <div class="step-box bg-coral"><h4>Step 4 抓戰犯決定動作</h4><p>拆解 6 檔 ETF 誤差佔比 %<br>依 35% 門檻分系統風險或換板塊</p></div>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">02 INPUT FORMULATION &amp; FINANCIAL ADAPTATIONS</div><h2>金融化輸入建構：對數報酬率、Z-score 與無前視時間切分</h2></div>
+            <span class="page-pill">03 / 13</span>
+          </div>
+          <div class="card" style="padding:6px 10px; margin-bottom:10px;">
+            <img src="claude_assets/fig_timeline.png" class="fit-img" style="max-height:152px;" alt="timeline">
+          </div>
+          <div class="card bg-blue border-blue" style="flex-direction:row; align-items:center; gap:16px; padding:8px 16px; margin-bottom:10px;">
+            <img src="claude_assets/eq_input.png" style="max-height:58px; max-width:68%; object-fit:contain;" alt="eq_input">
+            <p style="font-size:12px; color:#334155;"><strong>公式意涵：</strong>將非平穩價格轉為平穩對數報酬率，再以訓練期標準差縮放成 30×6 輸入矩陣。</p>
+          </div>
+          <div class="grid-3">
+            <div class="card border-blue">
+              <h3 class="c-blue">為什麼公式長這樣 &amp; 改 Adj Close</h3>
+              <ul>
+                <li><strong>取對數 ln(P<sub>t</sub>/P<sub>t-1</sub>)：</strong>股價隨通膨長期走高，直接餵價格會把高價當異常；對數報酬平穩且可時間累加。</li>
+                <li><strong>[修正3] Adj Close：</strong>修正原版 Close 在除息日跳空被誤算負報酬的假警報。</li>
+              </ul>
+            </div>
+            <div class="card border-emerald">
+              <h3 class="c-emerald">為何用 Z-score 並拿掉 Sigmoid</h3>
+              <ul>
+                <li><strong>原論文設定：</strong>感測器做 Min-Max 到 [0,1] 故接 Sigmoid；但金融厚尾下 Min-Max 會被極端值壓扁常態波動。</li>
+                <li><strong>金融化改造：</strong>採 Z-score + 純 Linear 輸出，跌破 −5σ 也能完整重構。</li>
+              </ul>
+            </div>
+            <div class="card border-amber">
+              <h3 class="c-amber">怎麼用：防前視與 P98 健康錨定</h3>
+              <ul>
+                <li><strong>嚴格隔離統計量：</strong>測試期全部套用 2010–18 計算出的 μ 與 σ。</li>
+                <li><strong>為何不用 Val 定門檻：</strong>2020 疫情會把門檻拉爆導致 2022+ 漏報，故門檻錨定訓練集 P98 (20.793)，Val 專職早停。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">03 PAPER FORMULA ANATOMY #1</div><h2>論文公式剖析 (一)：位置編碼、因果遮罩與自條件聚焦機制</h2></div>
+            <span class="page-pill">04 / 13</span>
+          </div>
+          <div class="grid-2 kpi-row" style="margin-bottom:12px;">
+            <div class="card bg-blue border-blue" style="padding:10px 14px;">
+              <h3 class="c-blue" style="margin-bottom:4px;">公式 ① 正弦位置編碼 (Positional Encoding)</h3>
+              <img src="claude_assets/eq_pe.png" class="eq-img" style="max-height:66px; margin:2px auto;" alt="eq_pe">
+            </div>
+            <div class="card bg-emerald border-emerald" style="padding:10px 14px;">
+              <h3 class="c-emerald" style="margin-bottom:4px;">公式 ② 因果遮罩注意力與 Focus Score</h3>
+              <img src="claude_assets/eq_attn_focus.png" class="eq-img" style="max-height:66px; margin:2px auto;" alt="eq_attn_focus">
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="card">
+              <h3>1. 為什麼公式長這樣？</h3>
+              <ul>
+                <li><strong class="c-blue">PE 用 sin/cos 多頻率波：</strong>Attention 本質無序，多波長正餘弦讓「相對天數差 Δk」可被線性變換辨識，且無額外參數不易過擬合。</li>
+                <li><strong class="c-emerald">為什麼加 M (上三角 −∞)？</strong>經 softmax 後 e^(−∞)=0，強制第 t 天完全屏蔽未來 t+1…30 天。</li>
+                <li><strong>為什麼 F = (O1 − W)²？</strong>平方把誤差轉正並放大顯著偏離，成為指導 Phase 2 的「錯誤焦點圖」。</li>
+              </ul>
+            </div>
+            <div class="card border-blue">
+              <h3 class="c-blue">2. 我們為何選用這組機制？</h3>
+              <ul>
+                <li><strong class="c-blue">金融時序具方向性：</strong>「先跌後彈」與「先彈後跌」風險完全不同，必須靠 PE 鎖定 30 天內的先後順序。</li>
+                <li><strong class="c-emerald">嚴防偷看未來：</strong>Window Encoder 透過因果遮罩確保推論 t 時不洩漏未來報酬。</li>
+                <li><strong>克服一般 AE 漏報：</strong>靠 F 顯影微小裂縫，經 Cross-Attention (Q=視窗, K/V=含 F 編碼) 放大檢視。</li>
+              </ul>
+            </div>
+            <div class="card bg-emerald border-emerald">
+              <h3 class="c-emerald">3. 在 claude改進版.py 怎麼用？</h3>
+              <ul>
+                <li><strong>PositionalEncoding (L82)：</strong>接在 <code>proj1</code> 與 <code>proj2</code> 後，注入 30×64 位置向量。</li>
+                <li><strong>因果遮罩 M (L132)：</strong><code>torch.triu(full((K,K),-inf), 1)</code> 傳入 <code>self_attn2</code>。</li>
+                <li><strong>兩階段推論 (L154)：</strong><br>① <code>o1, o2 = model(w)</code> (F=0)<br>② <code>focus = (o1 - w) ** 2</code> [修正5]<br>③ <code>_, o2_hat = model(w, focus)</code></li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">04 PAPER FORMULA ANATOMY #2</div><h2>論文公式剖析 (二)：演化式雙解碼器對抗損失 (L1, L2)</h2></div>
+            <span class="page-pill">05 / 13</span>
+          </div>
+          <div class="card bg-blue border-blue kpi-row" style="margin-bottom:12px; padding:10px 16px;">
+            <h3 style="margin-bottom:6px;">公式 ③ 演化對抗損失函數（Adversarial Loss，其中 n = epoch）</h3>
+            <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:16px; align-items:center;">
+              <img src="claude_assets/eq_adv_losses.png" style="max-height:94px; max-width:100%; object-fit:contain;" alt="eq_adv_losses">
+              <ul style="margin:0;">
+                <li><strong class="c-blue">左半項 1/n · ‖O−W‖²：</strong>基本功項，讓兩解碼器無提示時都會正常重構。</li>
+                <li><strong class="c-coral">右半項 ±(1−1/n) · ‖Ô2−W‖²：</strong>核心博弈！L1 用「+」壓小 Ô2；L2 用「−」放大 Ô2。</li>
+                <li><strong class="c-emerald">動態權重 w=1/n：</strong>由 1.0 → 0.5 → 0.1 遞減，先練基本功再逐輪開啟對抗。</li>
+              </ul>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="card">
+              <h3>1. 為什麼公式長這樣？(Min-Max)</h3>
+              <ul>
+                <li><strong class="c-blue">借鑑 GAN 雙人博弈：</strong>Decoder 1 像生成器（想做到給提示也重構完美）；Decoder 2 像判別器（看到 Focus 就刻意把誤差放大）。</li>
+                <li><strong class="c-amber">為什麼要有 1/n 衰減？</strong>Epoch 1 時 O1 還很爛，Focus 全是雜訊；n=1 時 1−1/n=0 純學重構，n≥2 才交棒給對抗。</li>
+              </ul>
+            </div>
+            <div class="card border-coral">
+              <h3 class="c-coral">2. 我們為何在金融上使用它？</h3>
+              <ul>
+                <li><strong class="c-coral">解決「異常被平滑化」：</strong>正常市場 Focus 趨近 0，Decoder 2 無從放大；一旦脫鉤，Focus 亮起後 Decoder 2 會把誤差成倍放大，拉開正常與異常分數。</li>
+                <li><strong>解釋原版為何失效：</strong>正負號正是為了對立，絕不能把 L1+L2 相加後一起求導！</li>
+              </ul>
+            </div>
+            <div class="card bg-blue border-blue">
+              <h3 class="c-blue">3. 在 claude改進版.py 怎麼用？</h3>
+              <ul>
+                <li><strong>參數分組 (L164)：</strong><code>main_params</code> 配 <code>opt_main</code> (1e-3)；<code>dec2_params</code> 配 <code>opt_dec2</code> (5e-4)。</li>
+                <li><strong>獨立求導 (L195)：</strong><code>autograd.grad</code> 分別求導並加 <code>grad_clip=1.0</code> 防發散。</li>
+                <li><strong class="c-emerald">早停指標巧思：</strong>只看 Phase 1 的 O1 驗證誤差，因為 Ô2 被要求放大誤差不適合作收斂指標。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">05 CRITICAL BUG FIX #1</div><h2>實作驗證 (一)：修復原版 Loss 相加抵消，實測對抗真正生效</h2></div>
+            <span class="page-pill">06 / 13</span>
+          </div>
+          <div class="grid-2">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div class="card bg-coral border-coral">
+                <h3 class="c-coral">原版 Bug：L1 + L2 合併求導，對抗項精確抵消為 0</h3>
+                <img src="claude_assets/eq_cancel.png" class="eq-img" alt="cancel">
+                <ul>
+                  <li><strong>問題 (L156)：</strong><code>(loss1 + loss2).backward()</code> 使 ±(1−w)‖Ô2−W‖² 互相抵消。</li>
+                  <li><strong>後果：</strong>Phase 2 梯度恆為 0，<code>proj1</code> Focus 權重停在隨機亂數；盲跑 40 輪嚴重過擬合 (Train P98=1.71 ➔ 誤報 40%)。</li>
+                </ul>
+              </div>
+              <div class="card bg-blue border-blue">
+                <h3 class="c-blue">claude改進版.py 實作效果 [修正1][4][5]</h3>
+                <img src="claude_assets/eq_split.png" class="eq-img" alt="split">
+                <ul>
+                  <li><strong>參數分組：</strong>Encoder+Dec1 只吃 L1 梯度；Dec2 只吃 L2 梯度 (lr=5e-4, grad_clip=1.0)。</li>
+                  <li><strong>對齊論文 + 早停：</strong>Focus 改平方誤差 <code>(O1-W)**2</code>，依 <code>val_rec</code> 鎖定最佳 Epoch 7 (0.5877)。</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <h3>實測訓練動態 (Epoch 1–15 真實數據)</h3>
+              <img src="claude_assets/fig_training_dynamics.png" class="fit-img" style="max-height:385px;" alt="training dynamics">
+              <p class="caption">Epoch 3 起 L2 如公式預測轉負（w &lt; 0.5），證實對抗啟動；Epoch 7 達最低驗證誤差並自動保留。</p>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">06 PAPER FORMULA ANATOMY #3</div><h2>論文公式剖析 (三)：綜合異常分數 s<sub>t</sub> 與 XAI 可加性歸因分解</h2></div>
+            <span class="page-pill">07 / 13</span>
+          </div>
+          <div class="card bg-blue border-blue kpi-row" style="margin-bottom:12px; padding:10px 16px;">
+            <h3 style="margin-bottom:4px;">公式 ④ 單日異常分數與逐維度誤差歸因（t = 視窗最後一天，i = 第 i 檔 ETF）</h3>
+            <img src="claude_assets/eq_score_xai.png" class="eq-img" style="max-height:74px; margin:2px auto;" alt="eq_score_xai">
+          </div>
+          <div class="grid-3">
+            <div class="card">
+              <h3>1. 為什麼公式長這樣？(算子設計)</h3>
+              <ul>
+                <li><strong class="c-blue">為什麼 ½ O<sub>1</sub> + ½ Ô<sub>2</sub>？</strong>同時融合 Phase 1 基礎重構偏離與 Phase 2 被對抗放大的焦點偏離，兼顧穩定性與靈敏度。</li>
+                <li><strong class="c-emerald">為何用平方和而非 Mean？</strong>平方和具備嚴格「可加性」——總分剛好等於 6 檔 ETF 個別誤差之和，不稀釋總衝擊。</li>
+                <li><strong class="c-coral">為何只取最後一天 t？</strong>論文僅評當下向量，前 29 天只供脈絡。</li>
+              </ul>
+            </div>
+            <div class="card border-emerald">
+              <h3 class="c-emerald">2. 我們為何這樣改造？(金融需求)</h3>
+              <ul>
+                <li><strong class="c-coral">[修正2] 根除 30 天高台：</strong>原版加總 30×6=180 點，導致一次衝擊往後誤響 30 天，當日訊號還被稀釋 30 倍。</li>
+                <li><strong class="c-emerald">[修正6] 統一計分與 XAI 口徑：</strong>讓 s<sub>t</sub> = Σ Attr<sub>t,i</sub> 嚴格成立，6 檔佔比加起來等於 100%。</li>
+                <li><strong>[修正8] 解開黑盒子：</strong>直接給出該賣特定板塊還是全面避險的依據。</li>
+              </ul>
+            </div>
+            <div class="card bg-blue border-blue">
+              <h3 class="c-blue">3. 在 claude改進版.py 怎麼用？</h3>
+              <ul>
+                <li><strong>單日切片 (L252)：</strong><code>feat_err = 0.5*(o1[:,-1,:]-w[:,-1,:])**2 + 0.5*(o2_hat[:,-1,:]-w[:,-1,:])**2</code>，<code>scores = feat_err.sum(dim=1)</code>。</li>
+                <li><strong>健康常態門檻 (L309)：</strong>取訓練集 s_t 的第 98 百分位 (20.793) 判異常。</li>
+                <li><strong class="c-coral">集中度診斷 (L258)：</strong>佔比 &lt; 35% 判系統性風險；≥ 35% 判大盤脫鉤或單一板塊破裂。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">07 CRITICAL BUG FIX #2</div><h2>實作驗證 (二)：單日 (Day t) 計分對照，異常率由 40.0% 收斂至 2.5%</h2></div>
+            <span class="page-pill">08 / 13</span>
+          </div>
+          <div class="grid-3 kpi-row" style="margin-bottom:12px;">
+            <div class="kpi bg-blue border-blue"><span>測試集異常天數 (1,222 天)</span><strong>489 天 (40.0%) ➔ 30 天 (2.5%)</strong></div>
+            <div class="kpi bg-coral border-coral"><span>2025/04 關稅衝擊峰值日</span><strong>延遲至 05-15 ➔ 精準 04-09</strong></div>
+            <div class="kpi bg-emerald border-emerald"><span>分數與歸因口徑 [修正2][6]</span><strong>統一只取 Day t，總和完全一致</strong></div>
+          </div>
+          <div class="grid-2" style="margin-bottom:12px; flex:1; min-height:0;">
+            <div class="card border-coral" style="padding:10px 12px;">
+              <h3 class="c-coral" style="font-size:13px; margin-bottom:4px;">Before：原版 (30 天加總 → 矩形拖尾 + 40% 條碼)</h3>
+              <img src="claude_assets/orig_trend.png" class="fit-img" style="max-height:295px;" alt="original plot">
+            </div>
+            <div class="card border-blue" style="padding:10px 12px;">
+              <h3 class="c-blue" style="font-size:13px; margin-bottom:4px;">After：claude改進版 (只取 Day t → 精準釘住衝擊日)</h3>
+              <img src="claude_assets/claude_trend.png" class="fit-img" style="max-height:295px;" alt="improved plot">
+            </div>
+          </div>
+          <div class="card" style="flex-direction:row; align-items:center; gap:18px; padding:10px 18px;">
+            <img src="claude_assets/eq_score_dayt.png" style="height:42px;" alt="score eq">
+            <p style="font-size:12.5px; color:#334155;"><strong>為什麼會有 30 天高台？</strong> 原版把 30 天×6 檔共 180 點全加起來，只要 4/9 暴衝，往後 29 天視窗都帶著這一天！改取最後一天 Day t 後，前 29 天純作歷史脈絡，訊號立即乾淨銳利。</p>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">08 SUMMARY OF 8 IMPROVEMENTS</div><h2>架構進化對照總表：8 項工程除錯與金融邏輯升級</h2></div>
+            <span class="page-pill">09 / 13</span>
+          </div>
+          <div class="card" style="padding:14px;">
+            <table class="clean-table">
+              <thead>
+                <tr><th>改進項目</th><th>原版 (etf_trend_anomaly.py)</th><th>改進版 (claude改進版.py)</th><th>實質影響</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="c-blue bold">[修正1] 對抗訓練更新</td><td>(loss1 + loss2).backward() 抵消</td><td>參數分組 + autograd 雙優化器 + 梯度裁剪</td><td class="c-emerald bold">Phase 2 與 Focus 權重真正活化</td></tr>
+                <tr><td class="c-blue bold">[修正2] 異常計分範圍</td><td>整個 30 天視窗 180 點加總</td><td>僅取視窗最後一天 Day t ([:, -1, :])</td><td class="c-emerald bold">異常率 40.0% ➔ 2.5%，消除拖尾</td></tr>
+                <tr><td class="c-blue bold">[修正3] ETF 價格欄位</td><td>未還原股利的 Close</td><td>還原股利與分割的 Adj Close</td><td class="c-emerald bold">避免除息跳空被誤判為崩跌</td></tr>
+                <tr><td class="c-blue bold">[修正4] 驗證集與早停</td><td>切出 win_val 後閒置，盲跑 40 輪</td><td>以 val_rec 早停並載回最佳 Epoch 7</td><td class="c-emerald bold">防止過擬合與對抗後期發散</td></tr>
+                <tr><td class="c-blue bold">[修正5] Focus Score</td><td>絕對誤差 |O1 − W|</td><td>論文原始平方誤差 (O1 − W)²</td><td class="c-emerald bold">對劇烈異常偏差更敏銳</td></tr>
+                <tr><td class="c-blue bold">[修正6] 分數歸因口徑</td><td>分數看兩解碼器30天；歸因只看 Ô2 1天</td><td>統一為 ½err(O1) + ½err(Ô2) 的 Day t</td><td class="c-emerald bold">6 檔歸因總和嚴格等於總異常分</td></tr>
+                <tr><td class="c-blue bold">[修正7] 門檻敏感度</td><td>只算單一 P98 門檻 (1.71)</td><td>輸出 P95 / P97 / P98 / P99 完整對照</td><td class="c-emerald bold">提供客觀門檻選取依據</td></tr>
+                <tr><td class="c-blue bold">[修正8] 風險診斷規則</td><td>僅看最大貢獻者是否為 SPY</td><td>先檢查最大佔比是否 &lt; 35%（集中度）</td><td class="c-emerald bold">避免全市場同跌被誤判為單一板塊</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">09 THRESHOLD SENSITIVITY &amp; EMPIRICAL EVENTS</div><h2>門檻敏感度分析 (P95–P99) 與盲測集真實黑天鵝捕捉</h2></div>
+            <span class="page-pill">10 / 13</span>
+          </div>
+          <div class="grid-2">
+            <div class="card">
+              <h3 class="c-blue">為什麼選擇訓練集第 98 百分位 (P98)？</h3>
+              <img src="claude_assets/fig_sensitivity.png" class="fit-img" style="max-height:285px;" alt="sensitivity">
+              <ul>
+                <li><strong>P95 (6.9%)：</strong>一年約 17 天警報，雜訊偏多。</li>
+                <li><strong class="c-blue">P98 (2.5%)：</strong>門檻 20.793 抓出 30/1222 天，最貼近理論 2% 尾端。</li>
+                <li><strong>P99 (1.1%)：</strong>僅剩 13 天極端危機，恐漏抓早期破裂徵兆。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>盲測集異常分數 Top 事件對照 (2022–2026)</h3>
+              <table class="clean-table compact">
+                <thead><tr><th>日期</th><th>分數</th><th>主要貢獻</th><th>對應市場事件</th></tr></thead>
+                <tbody>
+                  <tr><td class="bold">2025-04-09</td><td class="c-coral bold">246.57</td><td>SPY 32.6% / QQQ 32.5%</td><td>關稅暫緩暴漲反彈</td></tr>
+                  <tr><td class="bold">2025-04-04</td><td class="c-coral bold">131.99</td><td>全板塊均攤 (max 20.3%)</td><td>對等關稅恐慌暴跌</td></tr>
+                  <tr><td class="bold">2025-04-03</td><td class="c-coral bold">80.02</td><td>XLE 23.7% / SPY 23.5%</td><td>關稅宣布首日重挫</td></tr>
+                  <tr><td class="bold">2022-11-10</td><td class="bold">61.74</td><td>QQQ 42.2% (科技主導)</td><td>CPI 降溫暴力軋空</td></tr>
+                  <tr><td class="bold">2026-11-05</td><td class="bold">57.17</td><td>QQQ 44.7% (近期最新)</td><td>科技板塊結構破裂</td></tr>
+                  <tr><td class="bold">2022-09-13</td><td class="bold">47.40</td><td>QQQ 33.7% / SPY 31.0%</td><td>CPI 超預期升息恐慌</td></tr>
+                  <tr><td class="bold">2025-04-10</td><td class="bold">46.21</td><td>SPY 33.8% / XLE 27.1%</td><td>關稅週劇烈餘震</td></tr>
+                  <tr><td class="bold">2022-05-09</td><td class="bold">42.15</td><td>XLE 46.8% (能源主導)</td><td>能源獨立脫鉤修正</td></tr>
+                </tbody>
+              </table>
+              <p class="caption">註：異常分數衡量「定價慣性偏離度」，故極端暴漲與暴跌脫鉤皆可精準捕獲。</p>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">10 EXPLAINABLE AI (XAI) SECTOR ATTRIBUTION</div><h2>XAI 找戰犯實證：結合「誤差集中度 (&lt;35%)」區分風險類型</h2></div>
+            <span class="page-pill">11 / 13</span>
+          </div>
+          <div class="grid-2-asym">
+            <div class="card">
+              <h3>實證案例：6 檔 ETF 異常貢獻度拆解</h3>
+              <img src="claude_assets/fig_xai_cases.png" class="fit-img" style="max-height:420px;" alt="xai cases">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div class="card bg-coral border-coral">
+                <h3 class="c-coral">為什麼原版診斷規則會誤判？[修正8]</h3>
+                <ul>
+                  <li><strong>原版規則：</strong>只看第一名是不是 SPY，不是就判單一板塊破裂。</li>
+                  <li><strong>實證反例 (2025-04-04)：</strong>當天 6 檔貢獻極度平均 (XLE 20.3%、SPY 20.0%、XLF 18.2%、XLI 15.6%、QQQ 15.2%、XLV 10.7%)。原版會只因 XLE 多了 0.3% 誤診為能源外溢！</li>
+                </ul>
+              </div>
+              <div class="card border-emerald">
+                <h3 class="c-emerald">claude改進版.py 雙階診斷邏輯</h3>
+                <ul>
+                  <li><strong class="c-blue">1. Max &lt; 35% ➔ 【宏觀系統性風險】：</strong>多板塊齊崩（正確識別 2025-04-04 與 04-09）。</li>
+                  <li><strong class="c-amber">2. Max ≥ 35% 且為 SPY ➔ 【大盤脫鉤】：</strong>大盤與板塊慣性背離。</li>
+                  <li><strong class="c-coral">3. Max ≥ 35% 且為特定板塊 ➔ 【板塊結構破裂】：</strong>如 2022-05-09 (XLE 46.8%)、2026-11-05 (QQQ 44.7%)。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">11 EMPIRICAL TRAINING INSIGHT</div><h2>模型訓練洞察：論文對抗公式發散現象與 3 種訓練模式對比</h2></div>
+            <span class="page-pill">12 / 13</span>
+          </div>
+          <div class="card bg-amber border-amber kpi-row" style="margin-bottom:14px;">
+            <h3 class="c-amber">重要實證發現：為什麼 Epoch 7 後驗證誤差會回升？</h3>
+            <ul>
+              <li><strong>數學無下界現象：</strong>Epoch ≥ 3 起 w ≤ 0.33 &lt; 0.5，L2 負項權重大於正項，Decoder 2 可透過放大輸出無限拉低 L2（實測 +0.74 降至 −2.15）並反拉共用 Encoder。</li>
+              <li><strong>Early Stopping 保護：</strong>驗證集早停鎖住「對抗剛生效、常態重構尚未受損」的 Epoch 7 黃金權重 (val_rec = 0.5877)。</li>
+              <li><strong>對照官方實作：</strong>TranAD 官方 GitHub 其實省略了負號項 L2 只留 L1 以換取穩定，這解釋了照論文公式寫為何出現震盪。</li>
+            </ul>
+          </div>
+          <div class="grid-3">
+            <div class="card bg-blue border-blue">
+              <h3 class="c-blue">方案 A：論文公式+早停（本版）</h3>
+              <ul>
+                <li><strong>機制：</strong>雙優化器 Min-Max + 梯度裁剪 + Early Stopping。</li>
+                <li><strong>優點：</strong>忠於論文公式，已實證能穩定抓取 30 天關鍵異常。</li>
+                <li><strong>限制：</strong>訓練輪數受限於早停點（Epoch 7）。</li>
+              </ul>
+            </div>
+            <div class="card bg-emerald border-emerald">
+              <h3 class="c-emerald">方案 B：對抗項加 Clamp（待測）</h3>
+              <ul>
+                <li><strong>機制：</strong>對 L2 中的 mse(Ô2, W) 設上限 clamp(max=C)。</li>
+                <li><strong>優點：</strong>保留對抗放大異常特性，給定下界可訓練更久。</li>
+                <li><strong>目的：</strong>觀察充分訓練後對小異常的 Recall 提升。</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>方案 C：官方開源版（L1-only）</h3>
+              <ul>
+                <li><strong>機制：</strong>移除負號項 L2，全參數共同最小化 L1。</li>
+                <li><strong>優點：</strong>訓練平穩不發散。</li>
+                <li><strong>目的：</strong>作為消融對照組，量化對抗懲罰的實際增益。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="slide">
+          <div class="s-head">
+            <div><div class="s-tag">12 CONCLUSION &amp; NEXT STEPS</div><h2>總結與向教授請益：從公式落地到完整專題實驗矩陣</h2></div>
+            <span class="page-pill">13 / 13</span>
+          </div>
+          <div class="grid-2">
+            <div class="card border-blue">
+              <h3 class="c-blue">claude改進版.py 三大核心交付成果</h3>
+              <ul class="big-list">
+                <li><strong class="c-blue">1. 論文公式與實作完全對齊</strong><br>透徹理解並落地 PE、Causal Mask、平方 Focus 與雙優化器 Min-Max 對抗訓練，不再被正負抵消 Bug 架空。</li>
+                <li><strong class="c-emerald">2. 單日計分精準對齊真實市場</strong><br>改取 Day t 並統一可加性平方和，異常率由 40.0% 降為 2.5%，精準命中 2025 關稅劇震與 2022 CPI。</li>
+                <li><strong class="c-coral">3. 可解釋金融風險診斷升級</strong><br>透過誤差佔比與 35% 集中度門檻，具體指導投資人區分「系統性避險」與「板塊調倉」。</li>
+              </ul>
+            </div>
+            <div class="card bg-blue border-navy">
+              <h3>向 教授請益與下一步對齊事項</h3>
+              <ul class="big-list">
+                <li><strong>Q1. 對抗訓練模式的消融比較</strong><br>是否建議補齊「論文公式+早停 vs. Clamp 限幅 vs. 官方 L1-only」三組對比，量化對抗懲罰效益？</li>
+                <li><strong>Q2. 門檻與量化評估指標</strong><br>在 P95–P99 敏感度分析外，是否建議實作 POT 極值理論門檻或以歷史大跌日計算 Lead-Time？</li>
+                <li><strong>Q3. 同步升級主專案架構</strong><br>確認方向後，即可將這套修正同步套用至 <code>etf_tranad_project/</code> 的 <code>exp1~exp3</code> 並整合 GARCH 與 EWS。</li>
+              </ul>
+            </div>
+          </div>
+        </section></div>
+  <div id="bar">
+    <div><code>claude改進版.py</code> 教授說明簡報（支援方向鍵 ← / → 換頁）</div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button onclick="go(-1)">← 上一頁</button>
+      <span id="counter">1 / 13</span>
+      <button onclick="go(1)">下一頁 →</button>
+    </div>
+  </div>
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let cur = 0;
+  function show(n) {
+    cur = (n + slides.length) % slides.length;
+    slides.forEach((s, i) => s.classList.toggle('active', i === cur));
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+  }
+  function go(d) { show(cur + d); }
+  const params = new URLSearchParams(window.location.search);
+  const initSlide = parseInt(params.get('slide'), 10);
+  if (!isNaN(initSlide) && initSlide >= 1 && initSlide <= slides.length) {
+    show(initSlide - 1);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft') go(-1);
+  });
+</script>
+</body>
+</html>

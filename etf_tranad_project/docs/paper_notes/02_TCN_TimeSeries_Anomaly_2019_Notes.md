@@ -2,7 +2,7 @@
 
 * **論文標題**：*Temporal Convolutional Networks for Anomaly Detection in Time Series*
 * **作者與年份**：Yangdong He, Jiabao Zhao (2019)
-* **原始檔案位置**：[`Temporal Convolutional Networks for Anomaly Detection in Time Series (2019).pdf`](../../Temporal%20Convolutional%20Networks%20for%20Anomaly%20Detection%20in%20Time%20Series%20(2019).pdf)
+* **原始檔案位置**：[`Temporal Convolutional Networks for Anomaly Detection in Time Series (2019).pdf`](../../../papers/core/Temporal%20Convolutional%20Networks%20for%20Anomaly%20Detection%20in%20Time%20Series%20%282019%29.pdf)
 
 ---
 
