@@ -5,7 +5,7 @@
 > [!NOTE]
 > **分支與程式碼版本提醒**
 > - 本倉庫已完成結構整理並同步 `main` 與 `feat/structured-repo` 分支。
-> - 針對 TranAD 兩階段對抗訓練之**獨立優化器修正版**（使用 `torch.autograd.grad` 明確分離 Decoder1 / Decoder2 對抗目標，並以窗口最後一天 `[:, -1, :]` 作為第 `t` 天評分）目前位於 [`firstry/claude改進版.py`](firstry/claude改進版.py)；[`etf_tranad_project/experiments/`](etf_tranad_project/experiments/README.md) 中的 `exp1`–`exp4` 與 [`firstry/etf_trend_anomaly.py`](firstry/etf_trend_anomaly.py) 仍保留原始 `(loss1 + loss2).backward()` 合併回傳寫法以維持既有實驗紀錄，後續可視需求同步。
+> - 針對 TranAD 兩階段對抗訓練之**獨立優化器修正版**（使用 `torch.autograd.grad` 明確分離 Decoder1 / Decoder2 對抗目標，並以窗口最後一天 `[:, -1, :]` 作為第 `t` 天評分）目前位於 [`firstry/claude改進版.py`](firstry/claude改進版.py)；[`etf_tranad_project/experiments/`](etf_tranad_project/experiments/README.md) 中的 `exp1`–`exp4` 與 [`firstry/etf_trend_anomaly_有缺陷.py`](firstry/etf_trend_anomaly_有缺陷.py) 仍保留原始 `(loss1 + loss2).backward()` 合併回傳寫法以維持既有實驗紀錄，後續可視需求同步。
 
 ---
 

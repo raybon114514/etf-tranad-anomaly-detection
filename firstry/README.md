@@ -7,7 +7,7 @@
 | 檔案 | 類型 | 說明 |
 | :--- | :--- | :--- |
 | [`claude改進版.py`](claude改進版.py) | 改進版主程式 | **已修復版 TranAD + GJR-GARCH 腳本**：使用獨立優化器與 `torch.autograd.grad` 明確分離 Phase 1／Phase 2 對抗更新（對 `W` 取梯度後才清零或更新各參數，避免梯度互相抵消），並取視窗最後一步 `[:, -1, :]` 計算第 `t` 天異常分數，同時支援因果標準化視窗處理與即時圖表／診斷輸出 |
-| [`etf_trend_anomaly.py`](etf_trend_anomaly.py) | 原版原型程式 | 早期未修正版本，存在 `(loss1 + loss2).backward()` 合併反向傳播造成對抗損失正負項抵消之設計問題 |
+| [`etf_trend_anomaly_有缺陷.py`](etf_trend_anomaly_有缺陷.py) | 原版原型程式（有缺陷） | 早期未修正版本，存在 `(loss1 + loss2).backward()` 合併反向傳播造成對抗損失正負項抵消之設計問題 |
 | [`etf_anomaly_trend_claude.png`](etf_anomaly_trend_claude.png) | 結果圖表 | `claude改進版.py` 產出之多 ETF 異常分數趨勢與重大市場事件對照圖 |
 | [`project.py`](project.py) | 早期草稿 | 初期模型／資料流程測試草稿腳本 |
 | [`vsd.py`](vsd.py) | 早期實驗腳本 | 初期較完整的實驗測試腳本 |

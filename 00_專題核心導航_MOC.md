@@ -129,7 +129,7 @@ flowchart TD
    - 600dpi 公式圖庫：`報告進度/equations/`
    - 原版 vs. 改進版教授說明簡報（PPTX，13 頁）：`報告進度/claude改進版_教授說明簡報.pptx`（由 `create_claude_presentation.py` 生成）
    - 教授說明簡報網頁預覽：`報告進度/claude改進版_簡報網頁預覽.html`（視覺與公式圖檔位於 `報告進度/claude_assets/`）
-   - 對照實作程式：`firstry/claude改進版.py`（採用獨立 optimizer + `autograd.grad` 分離 Phase 1/Phase 2 對抗訓練並取第 `t` 天 `[:, -1, :]` 分數；對照原版 `firstry/etf_trend_anomaly.py` 與尚未同步修正的 `etf_tranad_project/experiments/exp1`–`exp4`）
+   - 對照實作程式：`firstry/claude改進版.py`（採用獨立 optimizer + `autograd.grad` 分離 Phase 1/Phase 2 對抗訓練並取第 `t` 天 `[:, -1, :]` 分數；對照原版 `firstry/etf_trend_anomaly_有缺陷.py` 與尚未同步修正的 `etf_tranad_project/experiments/exp1`–`exp4`）
 2. **完整逐字講稿**：
    - 參考：[[報告進度/簡報講稿與投影片大綱.md|簡報講稿與投影片大綱]]（含 Slide 1–12 講稿、時間分配與過場話術）。
 3. **每週進度報告與瓶頸對策**：
